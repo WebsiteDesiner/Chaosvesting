@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🔒 PinkLock 锁仓查询</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .mono { font-family: 'SF Mono', Monaco, 'Courier New', monospace; }
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
+</head>
+<body class="bg-white text-zinc-900 min-h-screen antialiased">
+
+<!-- 01 · 顶栏:Logo + 代币输入 + 查询按钮 -->
+<header class="h-16 px-6 md:px-12 flex items-center justify-between border-b border-zinc-200 sticky top-0 bg-white/95 backdrop-blur z-20">
+  <span class="text-sm font-semibold text-zinc-700 whitespace-nowrap tracking-wide">
+    🔒 PinkLock <span class="text-zinc-300 mx-2 font-normal">·</span><span class="text-zinc-500 font-normal"> 锁仓查询</span>
+  </span>
+  <input id="tokenInput" type="text"
+    class="flex-1 mx-6 md:mx-10 border-0 border-b border-zinc-300 focus:border-zinc-900 focus:ring-0 px-0 py-2 text-base md:text-lg mono bg-transparent outline-none transition-colors placeholder:text-zinc-300"
+    placeholder="粘贴代币地址  0x..."
+    value="0x19f46fddbac1ab00d203cc80515a44e320260419">
+  <button id="queryBtn"
+    class="rounded-full bg-zinc-900 hover:bg-zinc-700 text-white px-6 py-2 text-sm font-medium transition-colors whitespace-nowrap disabled:opacity-50">
+    查询
+  </button>
+</header>
+
+<details class="px-6 md:px-12 py-3 border-b border-zinc-100">
+  <summary class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium cursor-pointer hover:text-zinc-700 transition-colors select-none">高级设置 · RPC / Locker 合约</summary>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-5 mt-5 pb-3">
+    <div>
+      <label class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium block mb-2">Locker 合约地址</label>
+      <input id="lockerInput" type="text"
+        class="w-full border-0 border-b border-zinc-300 focus:border-zinc-900 focus:ring-0 px-0 py-2 text-sm mono bg-transparent outline-none"
+        value="0x407993575c91ce7643a4d4ccacc9a98c36ee1bbe">
+    </div>
+    <div>
+      <label class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium block mb-2">BSC RPC 节点</label>
+      <input id="rpcInput" type="text"
+        class="w-full border-0 border-b border-zinc-300 focus:border-zinc-900 focus:ring-0 px-0 py-2 text-sm mono bg-transparent outline-none"
+        value="https://lb.drpc.live/bsc/AhFFc_foCERVuckrokH_kjlQCkQrR94R8Z7UtiKh6MJI">
+    </div>
+  </div>
+</details>
+
+<!-- 02 · Hero:代币信息 + 总锁仓价值 + 释放进度环 -->
+<section id="tokenInfo" class="hidden py-14 md:py-20 px-6 md:px-12 grid grid-cols-12 gap-8 md:gap-12 border-b border-zinc-200">
+  <!-- 左:代币名 + 价格 -->
+  <div class="col-span-12 md:col-span-4 flex flex-col justify-center">
+    <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium mb-4">代币</div>
+    <div id="tiName" class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">--</div>
+    <div class="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <span id="tiSymbol" class="text-base mono font-medium text-zinc-700"></span>
+      <span class="text-zinc-300">·</span>
+      <span id="tiPrice" class="text-base mono font-semibold text-zinc-900">--</span>
+      <span id="tiPriceSrc" class="text-sm text-zinc-400"></span>
+    </div>
+  </div>
+
+  <!-- 中:总锁仓价值 -->
+  <div class="col-span-12 md:col-span-5 flex flex-col justify-center">
+    <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium mb-4">锁仓总价值</div>
+    <div id="tiTotalUsd" class="text-6xl md:text-7xl font-semibold tabular-nums tracking-tight leading-none">--</div>
+    <div class="mt-4 text-sm text-zinc-500 tabular-nums">
+      <span id="tiTotalAmount" class="mono text-zinc-700 font-medium">--</span>
+      <span class="text-zinc-400 ml-2">枚代币 已锁定</span>
+    </div>
+  </div>
+
+  <!-- 右:释放进度环 -->
+  <div class="col-span-12 md:col-span-3 flex md:justify-end items-center">
+    <div class="relative w-32 h-32 md:w-36 md:h-36">
+      <svg id="tiDonut" class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="#f4f4f5" stroke-width="10"/>
+        <circle id="tiDonutArc" cx="50" cy="50" r="42" fill="none" stroke="#10b981" stroke-width="10"
+          stroke-dasharray="0 263.9" stroke-linecap="round" style="transition: stroke-dasharray .6s ease"/>
+      </svg>
+      <div class="absolute inset-0 flex flex-col items-center justify-center">
+        <div id="tiDonutPct" class="text-2xl font-semibold tabular-nums">0%</div>
+        <div class="text-[11px] uppercase tracking-wider text-zinc-400 mt-0.5">已释放</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 · 关键指标四格 -->
+<section id="statStrip" class="hidden grid grid-cols-2 md:grid-cols-4 divide-x divide-zinc-200 px-6 md:px-12 py-10 border-b border-zinc-200">
+  <div class="pr-6 md:pr-10">
+    <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium">锁仓笔数</div>
+    <div id="tiLockCount" class="text-4xl font-medium tabular-nums mt-3">--</div>
+  </div>
+  <div class="px-6 md:px-10">
+    <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium">已释放</div>
+    <div id="statReleased" class="text-4xl font-medium tabular-nums mt-3 text-emerald-600">--</div>
+  </div>
+  <div class="px-6 md:px-10">
+    <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium">仍锁定</div>
+    <div id="statLocked" class="text-4xl font-medium tabular-nums mt-3">--</div>
+  </div>
+  <div class="px-6 md:px-10">
+    <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium">下次解锁</div>
+    <div id="statNextDays" class="text-4xl font-medium tabular-nums mt-3">--</div>
+    <div id="statNextMeta" class="text-sm text-zinc-500 mt-1.5 mono truncate">--</div>
+  </div>
+</section>
+
+<!-- 04 · 工具栏 + 锁仓列表 -->
+<div id="locksWrap" class="hidden">
+  <div class="sticky top-16 z-10 bg-white/95 backdrop-blur px-6 md:px-12 py-4 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-100">
+    <span id="locksCount" class="text-sm text-zinc-500 font-medium">共 0 笔</span>
+    <div class="flex gap-6 md:gap-8 items-center flex-wrap">
+      <input id="filterAddr"
+        class="border-0 border-b border-zinc-300 focus:border-zinc-900 focus:ring-0 text-sm py-1 px-0 mono bg-transparent outline-none w-44 md:w-60 placeholder:text-zinc-300"
+        placeholder="搜索地址  0x...">
+      <label class="text-sm text-zinc-500 flex items-center gap-3">
+        <span class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium">排序</span>
+        <select id="sortBy" class="text-sm bg-transparent border-0 focus:ring-0 text-zinc-900 font-medium cursor-pointer outline-none">
+          <option value="days_asc">即将解锁(由近到远)</option>
+          <option value="days_desc">解锁最晚</option>
+          <option value="amount_desc">数量 ↓</option>
+          <option value="amount_asc">数量 ↑</option>
+          <option value="usd_desc">USD 价值 ↓</option>
+          <option value="lockdate_desc">锁仓时间(最新)</option>
+          <option value="lockdate_asc">锁仓时间(最早)</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <!-- 05 · 锁仓列表 -->
+  <div id="locksBody"></div>
+</div>
+
+<!-- 06 · 调试日志(右下角悬浮)-->
+<button id="debugToggle"
+  class="fixed bottom-5 right-5 w-12 h-12 rounded-full bg-zinc-900 hover:bg-zinc-700 text-white text-[11px] font-medium shadow-lg ring-1 ring-zinc-900/10 z-30 transition-colors uppercase tracking-wider">
+  日志
+</button>
+
+<aside id="debugDrawer"
+  class="fixed right-0 top-0 h-full w-full md:w-[440px] translate-x-full bg-white border-l border-zinc-200 shadow-2xl z-40 transition-transform duration-300 flex flex-col">
+  <div class="px-6 py-4 border-b border-zinc-200 flex items-center justify-between">
+    <span class="text-sm font-semibold text-zinc-900">调试日志</span>
+    <button id="debugClose" class="text-zinc-400 hover:text-zinc-900 text-xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100">×</button>
+  </div>
+  <pre id="debugLog" class="flex-1 overflow-y-auto text-xs mono text-zinc-600 bg-zinc-50 m-4 rounded-lg p-4 whitespace-pre-wrap leading-relaxed"></pre>
+</aside>
+
+<!-- Status Toast -->
+<div id="status" class="fixed bottom-5 left-5 hidden rounded-full bg-white shadow-lg ring-1 ring-zinc-200 px-4 py-2 text-sm flex items-center gap-2 z-30 transition-opacity"></div>
+
+<script>
+// ============================================================================
+// 常量 + ABI
+// ============================================================================
+const USDT = "0x55d398326f99059fF775485246999027B3197955";
+const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
+const PANCAKE_FACTORY = "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73";
+const BNB_USDT_PAIR   = "0x16b9a82891338f9bA80E2D6970FddA79D1eb0daE";
+const MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11";
+
+const ERC20_ABI = [
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function decimals() view returns (uint8)",
+];
+
+const FACTORY_ABI = [
+  "function getPair(address tokenA, address tokenB) view returns (address)",
+];
+
+const PAIR_ABI = [
+  "function getReserves() view returns (uint112, uint112, uint32)",
+  "function token0() view returns (address)",
+];
+
+const MULTICALL_ABI = [
+  "function aggregate3(tuple(address target, bool allowFailure, bytes callData)[]) payable returns (tuple(bool success, bytes returnData)[])",
+];
+
+// PinkLock V2 标准 ABI(参考 pinksale.finance 的 PinkLock 合约)
+const LOCKER_ABI = [
+  "function totalLockCountForToken(address token) view returns (uint256)",
+  `function getLocksForToken(address token, uint256 start, uint256 end) view returns (
+    tuple(
+      uint256 id, address token, address owner, uint256 amount,
+      uint256 lockDate, uint256 tgeDate, uint256 tgeBps,
+      uint256 cycle, uint256 cycleBps, uint256 unlockedAmount,
+      string description
+    )[]
+  )`,
+  "function getTotalTokenLockedCount() view returns (uint256)",
+];
+
+// ============================================================================
+// 工具函数
+// ============================================================================
+const $ = id => document.getElementById(id);
+let provider;
+let logBuf = '';
+
+function dlog(...args) {
+  const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+  const time = new Date().toLocaleTimeString('zh-CN');
+  console.log(`[${time}]`, ...args);
+  logBuf = `[${time}] ${msg}\n` + logBuf;
+  if (logBuf.length > 20000) logBuf = logBuf.slice(0, 20000);
+  $('debugLog').textContent = logBuf;
+}
+
+let statusHideTimer = null;
+function setStatus(text, spinning = false) {
+  const el = $('status');
+  if (!text) { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  const dot = spinning
+    ? `<span class="inline-block w-3 h-3 border-2 border-zinc-900 border-t-transparent rounded-full spin"></span>`
+    : (text.startsWith('❌') || text.toLowerCase().includes('error'))
+      ? `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>`
+      : `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>`;
+  el.innerHTML = `${dot}<span class="text-zinc-700">${text.replace(/^[✓❌]\s*/, '')}</span>`;
+  if (statusHideTimer) clearTimeout(statusHideTimer);
+  if (!spinning) {
+    statusHideTimer = setTimeout(() => el.classList.add('hidden'), 3500);
+  }
+}
+
+const fmtNum = (val, decimals = 18, digits = 2) => {
+  const n = Number(ethers.formatUnits(val, decimals));
+  if (Math.abs(n) >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (Math.abs(n) >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1e3) return (n/1e3).toFixed(2) + 'K';
+  return n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+};
+
+const fmtUsd = (n) => {
+  if (!isFinite(n)) return '--';
+  if (Math.abs(n) >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+  if (Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1e3) return '$' + (n/1e3).toFixed(2) + 'K';
+  return '$' + n.toFixed(2);
+};
+
+const shortAddr = a => a ? `${a.slice(0,6)}…${a.slice(-4)}` : '';
+
+const fmtDate = (ts) => {
+  if (!ts || ts === 0n) return '--';
+  const d = new Date(Number(ts) * 1000);
+  return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+};
+
+// ============================================================================
+// 一次 multicall 拿:代币 name/symbol/decimals + USDT pair + WBNB pair + BNB pair reserves
+//   原来 7 个串行 RPC → 现在 1 个 multicall
+// ============================================================================
+async function fetchMetaAndPrice(token, lockerAddr) {
+  const erc20Iface = new ethers.Interface(ERC20_ABI);
+  const factoryIface = new ethers.Interface(FACTORY_ABI);
+  const pairIface = new ethers.Interface(PAIR_ABI);
+  const mc = new ethers.Contract(MULTICALL3, MULTICALL_ABI, provider);
+
+  // Phase 1: 元信息 + factory.getPair × 2 + BNB/USDT pair token0 + reserves + lockCount
+  const lockerIface = new ethers.Interface(LOCKER_ABI);
+  const phase1Calls = [
+    { target: token, allowFailure: true, callData: erc20Iface.encodeFunctionData("name") },
+    { target: token, allowFailure: true, callData: erc20Iface.encodeFunctionData("symbol") },
+    { target: token, allowFailure: true, callData: erc20Iface.encodeFunctionData("decimals") },
+    { target: PANCAKE_FACTORY, allowFailure: true, callData: factoryIface.encodeFunctionData("getPair", [token, USDT]) },
+    { target: PANCAKE_FACTORY, allowFailure: true, callData: factoryIface.encodeFunctionData("getPair", [token, WBNB]) },
+    { target: BNB_USDT_PAIR, allowFailure: true, callData: pairIface.encodeFunctionData("token0") },
+    { target: BNB_USDT_PAIR, allowFailure: true, callData: pairIface.encodeFunctionData("getReserves") },
+    { target: lockerAddr, allowFailure: true, callData: lockerIface.encodeFunctionData("totalLockCountForToken", [token]) },
+  ];
+  const t0 = performance.now();
+  const r1 = await mc.aggregate3.staticCall(phase1Calls);
+  dlog(`Phase 1 multicall: ${(performance.now()-t0).toFixed(0)}ms (8 calls)`);
+
+  const tryDecode = (res, iface, fn, fallback) => {
+    if (!res.success) return fallback;
+    try { return iface.decodeFunctionResult(fn, res.returnData)[0]; }
+    catch { return fallback; }
+  };
+
+  const name     = tryDecode(r1[0], erc20Iface, "name", "Unknown");
+  const symbol   = tryDecode(r1[1], erc20Iface, "symbol", "?");
+  const decimals = Number(tryDecode(r1[2], erc20Iface, "decimals", 18));
+  const usdtPairAddr = tryDecode(r1[3], factoryIface, "getPair", ethers.ZeroAddress);
+  const wbnbPairAddr = tryDecode(r1[4], factoryIface, "getPair", ethers.ZeroAddress);
+  const bnbToken0 = tryDecode(r1[5], pairIface, "token0", ethers.ZeroAddress);
+  const totalCount = tryDecode(r1[7], lockerIface, "totalLockCountForToken", 0n);
+
+  let bnbReserveBnb = 0n, bnbReserveUsdt = 0n;
+  if (r1[6].success) {
+    try {
+      const dec = pairIface.decodeFunctionResult("getReserves", r1[6].returnData);
+      const bnbIs0 = bnbToken0.toLowerCase() === WBNB.toLowerCase();
+      bnbReserveBnb  = bnbIs0 ? dec[0] : dec[1];
+      bnbReserveUsdt = bnbIs0 ? dec[1] : dec[0];
+    } catch {}
+  }
+  const bnbPrice = bnbReserveBnb > 0n
+    ? Number(ethers.formatUnits(bnbReserveUsdt, 18)) / Number(ethers.formatUnits(bnbReserveBnb, 18))
+    : 0;
+  dlog(`Token: ${name} (${symbol}) decimals=${decimals}`);
+  dlog(`BNB 价: $${bnbPrice.toFixed(2)}`);
+
+  // Phase 2: 实际 pair 的 reserves + token0(只查存在的 pair)
+  let price = 0, src = '无 LP 对';
+  const phase2Calls = [];
+  const phase2Meta = [];  // {addr, kind: 'usdt'|'wbnb'}
+  if (usdtPairAddr !== ethers.ZeroAddress) {
+    phase2Calls.push({ target: usdtPairAddr, allowFailure: true, callData: pairIface.encodeFunctionData("token0") });
+    phase2Calls.push({ target: usdtPairAddr, allowFailure: true, callData: pairIface.encodeFunctionData("getReserves") });
+    phase2Meta.push({ addr: usdtPairAddr, kind: 'usdt' });
+  }
+  if (wbnbPairAddr !== ethers.ZeroAddress) {
+    phase2Calls.push({ target: wbnbPairAddr, allowFailure: true, callData: pairIface.encodeFunctionData("token0") });
+    phase2Calls.push({ target: wbnbPairAddr, allowFailure: true, callData: pairIface.encodeFunctionData("getReserves") });
+    phase2Meta.push({ addr: wbnbPairAddr, kind: 'wbnb' });
+  }
+  if (phase2Calls.length > 0) {
+    const t1 = performance.now();
+    const r2 = await mc.aggregate3.staticCall(phase2Calls);
+    dlog(`Phase 2 multicall: ${(performance.now()-t1).toFixed(0)}ms (${phase2Calls.length} calls)`);
+
+    // 优先 USDT pair
+    for (let i = 0; i < phase2Meta.length; i++) {
+      const m = phase2Meta[i];
+      const t0Res = r2[i * 2];
+      const resvRes = r2[i * 2 + 1];
+      if (!t0Res.success || !resvRes.success) continue;
+      try {
+        const t0Addr = pairIface.decodeFunctionResult("token0", t0Res.returnData)[0];
+        const dec = pairIface.decodeFunctionResult("getReserves", resvRes.returnData);
+        const tokenIs0 = t0Addr.toLowerCase() === token.toLowerCase();
+        const reserveToken = tokenIs0 ? dec[0] : dec[1];
+        const reserveQuote = tokenIs0 ? dec[1] : dec[0];
+        if (reserveToken === 0n) continue;
+
+        if (m.kind === 'usdt') {
+          price = Number(ethers.formatUnits(reserveQuote, 18)) / Number(ethers.formatUnits(reserveToken, decimals));
+          src = 'USDT pair';
+          break;  // USDT 对优先,找到就停
+        } else {
+          // WBNB 对,用 BNB 价换算
+          const priceInBnb = Number(ethers.formatUnits(reserveQuote, 18)) / Number(ethers.formatUnits(reserveToken, decimals));
+          price = priceInBnb * bnbPrice;
+          src = `WBNB→USDT (BNB $${bnbPrice.toFixed(2)})`;
+        }
+      } catch (e) { dlog(`pair ${m.addr} 解析失败: ${e.message.slice(0,80)}`); }
+    }
+  }
+  dlog(`✓ 代币价: $${price.toPrecision(4)} (${src})`);
+
+  return { name, symbol, decimals, price, priceSrc: src, totalCount };
+}
+
+// ============================================================================
+// localStorage 缓存 (BigInt 序列化:存 toString,读 BigInt)
+// ============================================================================
+const TTL_META  = 24 * 3600 * 1000;  // 元信息缓存 1 天
+const TTL_LOCKS = 30 * 1000;          // 锁仓数据缓存 30 秒
+const CACHE_PREFIX = 'vesting:56';
+
+const BIGINT_FIELDS = ['id','amount','lockDate','tgeDate','tgeBps','cycle','cycleBps','unlockedAmount'];
+
+function cacheKey(lockerAddr, tokenAddr) {
+  return `${CACHE_PREFIX}:${lockerAddr.toLowerCase()}:${tokenAddr.toLowerCase()}`;
+}
+
+function serializeLocks(locks) {
+  return locks.map(l => {
+    const o = { token: l.token, owner: l.owner, description: l.description || '' };
+    for (const f of BIGINT_FIELDS) o[f] = l[f] != null ? l[f].toString() : '0';
+    return o;
+  });
+}
+
+function deserializeLocks(arr) {
+  return arr.map(l => {
+    const o = { token: l.token, owner: l.owner, description: l.description || '' };
+    for (const f of BIGINT_FIELDS) o[f] = BigInt(l[f] || '0');
+    return o;
+  });
+}
+
+function loadCache(lockerAddr, tokenAddr) {
+  try {
+    const raw = localStorage.getItem(cacheKey(lockerAddr, tokenAddr));
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (!obj || !obj.meta) return null;
+    const now = Date.now();
+    const metaAge = now - (obj.meta_ts || 0);
+    const locksAge = now - (obj.locks_ts || 0);
+    // 元信息超过 1 天就丢弃整个缓存
+    if (metaAge > TTL_META) return null;
+    return {
+      meta: obj.meta,
+      locks: obj.locks ? deserializeLocks(obj.locks) : [],
+      meta_age_ms: metaAge,
+      locks_age_ms: locksAge,
+      locks_fresh: locksAge < TTL_LOCKS,
+    };
+  } catch (e) {
+    dlog(`loadCache 失败: ${e.message.slice(0,80)}`);
+    return null;
+  }
+}
+
+function saveCache(lockerAddr, tokenAddr, meta, locks) {
+  try {
+    const now = Date.now();
+    const payload = {
+      meta: { name: meta.name, symbol: meta.symbol, decimals: meta.decimals,
+              price: meta.price, priceSrc: meta.priceSrc,
+              totalCount: meta.totalCount != null ? meta.totalCount.toString() : '0' },
+      meta_ts: now,
+      locks: serializeLocks(locks),
+      locks_ts: now,
+    };
+    localStorage.setItem(cacheKey(lockerAddr, tokenAddr), JSON.stringify(payload));
+  } catch (e) {
+    dlog(`saveCache 失败: ${e.message.slice(0,80)}`);
+  }
+}
+
+// ============================================================================
+// 元信息瞬时渲染 (不等锁仓数据)
+// ============================================================================
+function renderTokenInfo(meta) {
+  $('tiName').textContent = meta.name;
+  $('tiSymbol').textContent = meta.symbol;
+  $('tiPrice').textContent = meta.price > 0 ? '$' + Number(meta.price).toPrecision(4) : '--';
+  $('tiPriceSrc').textContent = meta.priceSrc || '';
+  const n = meta.totalCount != null
+    ? (typeof meta.totalCount === 'bigint' ? Number(meta.totalCount) : Number(meta.totalCount))
+    : 0;
+  $('tiLockCount').textContent = n.toString();
+  $('tokenInfo').classList.remove('hidden');
+  $('statStrip').classList.remove('hidden');
+  $('locksWrap').classList.remove('hidden');
+}
+
+// ============================================================================
+// 渐进式渲染节流 (200ms)
+// ============================================================================
+let renderPending = false;
+function scheduleRender() {
+  if (renderPending) return;
+  renderPending = true;
+  setTimeout(() => { renderPending = false; renderLocks(); }, 200);
+}
+
+// ============================================================================
+// 锁仓数据处理
+// ============================================================================
+function computeLockState(lock, now) {
+  const amount     = lock.amount;
+  const tgeDate    = Number(lock.tgeDate);
+  const tgeBps     = Number(lock.tgeBps);
+  const cycle      = Number(lock.cycle);
+  const cycleBps   = Number(lock.cycleBps);
+  const claimed    = lock.unlockedAmount;     // 已通过合约提走的
+
+  let theoreticallyUnlocked = 0n;
+  if (now >= tgeDate) {
+    theoreticallyUnlocked = (amount * BigInt(tgeBps)) / 10000n;
+    const elapsed = now - tgeDate;
+    if (cycle > 0 && cycleBps > 0) {
+      const cycles = BigInt(Math.floor(elapsed / cycle));
+      theoreticallyUnlocked += (amount * BigInt(cycleBps) * cycles) / 10000n;
+    }
+    if (theoreticallyUnlocked > amount) theoreticallyUnlocked = amount;
+  }
+  // 实际"还锁"的 = 总量 - 理论已解锁 (即使没 claim 也算解锁的不再"锁")
+  const stillLocked = amount > theoreticallyUnlocked ? amount - theoreticallyUnlocked : 0n;
+  const claimableNow = theoreticallyUnlocked > claimed ? theoreticallyUnlocked - claimed : 0n;
+
+  // 剩余天数:全部释放完还需要多少天
+  let fullUnlockTime = tgeDate;
+  if (cycleBps > 0) {
+    const cyclesNeeded = Math.ceil(Math.max(0, 10000 - tgeBps) / cycleBps);
+    fullUnlockTime = tgeDate + cyclesNeeded * cycle;
+  }
+  const daysRemaining = Math.max(0, (fullUnlockTime - now) / 86400);
+
+  return {
+    theoreticallyUnlocked,  // 时间线算出来的累计可解锁
+    claimed,                // 实际从合约提走的
+    claimableNow,           // 现在能 claim 的
+    stillLocked,            // 还有多少在合约里锁着 (理论值)
+    daysRemaining,
+    fullUnlockTime,
+    progressPct: amount > 0n ? Number((theoreticallyUnlocked * 10000n) / amount) / 100 : 0,
+  };
+}
+
+let allLocks = [];
+let tokenDecimals = 18;
+let tokenPrice = 0;
+
+async function query() {
+  const lockerAddr = $('lockerInput').value.trim();
+  const tokenAddr = $('tokenInput').value.trim();
+  const rpcUrl = $('rpcInput').value.trim();
+  if (!ethers.isAddress(lockerAddr) || !ethers.isAddress(tokenAddr)) {
+    alert('地址格式错误'); return;
+  }
+
+  $('queryBtn').disabled = true;
+  logBuf = '';
+
+  // === A · 缓存命中即瞬时显示 ===
+  const cached = loadCache(lockerAddr, tokenAddr);
+  if (cached) {
+    tokenDecimals = cached.meta.decimals;
+    tokenPrice = Number(cached.meta.price) || 0;
+    allLocks = cached.locks;
+    renderTokenInfo(cached.meta);
+    if (allLocks.length > 0) renderLocks();
+    setStatus(`⚡ 缓存命中 (${Math.round(cached.meta_age_ms/1000)}s 前),后台刷新中…`, true);
+    dlog(`⚡ 缓存命中: ${allLocks.length} 条, meta ${Math.round(cached.meta_age_ms/1000)}s 前, locks ${Math.round(cached.locks_age_ms/1000)}s 前`);
+  } else {
+    setStatus('连接中…', true);
+  }
+
+  try {
+    const TOTAL_START = performance.now();
+    provider = new ethers.JsonRpcProvider(rpcUrl, { name: 'bnb', chainId: 56 }, { staticNetwork: true });
+    dlog(`RPC: ${rpcUrl}`);
+    dlog(`Locker: ${lockerAddr}`);
+    dlog(`Token : ${tokenAddr}`);
+
+    // === B · Phase1 已合并 totalLockCountForToken ===
+    setStatus(cached ? '后台刷新元信息…' : '读元信息 + 价格 + 锁仓总数…', true);
+    const locker = new ethers.Contract(lockerAddr, LOCKER_ABI, provider);
+    const meta = await fetchMetaAndPrice(tokenAddr, lockerAddr);
+    tokenDecimals = meta.decimals;
+    tokenPrice = meta.price;
+
+    // === E · 元信息瞬时显示 (不等锁仓数据) ===
+    renderTokenInfo(meta);
+
+    const N = Number(meta.totalCount);
+    dlog(`总锁仓单数: ${N}`);
+
+    // === D · 批次/并发拉满 ===
+    const BATCH = 1000;
+    const CONCURRENCY = 20;
+    const newLocks = new Array(N);
+    const batches = [];
+    for (let i = 0; i < N; i += BATCH) {
+      batches.push({ start: i, end: Math.min(i + BATCH, N) });
+    }
+    let done = 0, failed = 0;
+    let idx = 0;
+
+    // === C · 渐进式渲染:每批完成立即合并到 allLocks 并节流 render ===
+    allLocks = []; // 准备承接渐进数据
+    const worker = async () => {
+      while (idx < batches.length) {
+        const myIdx = idx++;
+        const { start, end } = batches[myIdx];
+        try {
+          const t0 = performance.now();
+          const batch = await locker.getLocksForToken(tokenAddr, start, end);
+          for (let j = 0; j < batch.length; j++) {
+            const l = batch[j];
+            newLocks[start + j] = {
+              id: l.id, token: l.token, owner: l.owner, amount: l.amount,
+              lockDate: l.lockDate, tgeDate: l.tgeDate, tgeBps: l.tgeBps,
+              cycle: l.cycle, cycleBps: l.cycleBps, unlockedAmount: l.unlockedAmount,
+              description: l.description || '',
+            };
+          }
+          // 实时累计到 allLocks 供渲染
+          allLocks = newLocks.filter(Boolean);
+          scheduleRender();
+          dlog(`  [${start},${end}): +${batch.length} 条 (${(performance.now()-t0).toFixed(0)}ms)`);
+        } catch (e) {
+          failed++;
+          dlog(`⚠️ [${start},${end}) 失败: ${e.message.slice(0,80)}`);
+        }
+        done++;
+        setStatus(`已加载 ${allLocks.length}/${N} 条 (批 ${done}/${batches.length})`, true);
+      }
+    };
+    const tBatch = performance.now();
+    await Promise.all(Array(Math.min(CONCURRENCY, batches.length)).fill(0).map(worker));
+    dlog(`✓ 拉 ${batches.length} 批锁仓: ${(performance.now()-tBatch).toFixed(0)}ms (${failed} 批失败)`);
+
+    // 过滤掉 failed/undefined 槽位
+    allLocks = newLocks.filter(Boolean);
+    dlog(`✓ 共 ${allLocks.length} 条锁仓数据`);
+
+    // 最终强制渲染一次(保最后一帧)
+    renderLocks();
+    const totalMs = (performance.now() - TOTAL_START).toFixed(0);
+    setStatus(`✓ 完成 ${allLocks.length} 条锁仓 · 总耗时 ${totalMs}ms`);
+
+    // === A · 收尾写缓存 ===
+    saveCache(lockerAddr, tokenAddr, meta, allLocks);
+  } catch (e) {
+    console.error(e);
+    dlog(`❌ 错误: ${e.message}`);
+    setStatus(`❌ ${e.message.slice(0, 80)}`);
+  } finally {
+    $('queryBtn').disabled = false;
+  }
+}
+
+function renderLocks() {
+  const body = $('locksBody');
+  const now = Math.floor(Date.now() / 1000);
+
+  // 计算每条锁的状态 + USD 价值
+  const rows = allLocks.map(l => {
+    const state = computeLockState(l, now);
+    const amountNum    = Number(ethers.formatUnits(l.amount, tokenDecimals));
+    const unlockedNum  = Number(ethers.formatUnits(state.theoreticallyUnlocked, tokenDecimals));
+    const lockedNum    = Number(ethers.formatUnits(state.stillLocked, tokenDecimals));
+    return {
+      ...l, state,
+      amountNum, unlockedNum, lockedNum,
+      amountUsd: amountNum * tokenPrice,
+      unlockedUsd: unlockedNum * tokenPrice,
+      lockedUsd: lockedNum * tokenPrice,
+    };
+  });
+
+  // 汇总
+  const totalAmount   = rows.reduce((s, r) => s + r.amountNum, 0);
+  const totalUnlocked = rows.reduce((s, r) => s + r.unlockedNum, 0);
+  const totalLocked   = rows.reduce((s, r) => s + r.lockedNum, 0);
+  const totalUsd      = totalAmount * tokenPrice;
+  const releasedPct   = totalAmount > 0 ? (totalUnlocked / totalAmount) * 100 : 0;
+
+  $('tiTotalAmount').textContent = totalAmount.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  $('tiTotalUsd').textContent = fmtUsd(totalUsd);
+
+  // Donut
+  const circumference = 2 * Math.PI * 42; // ≈ 263.9
+  const arc = $('tiDonutArc');
+  if (arc) arc.setAttribute('stroke-dasharray', `${(releasedPct / 100) * circumference} ${circumference}`);
+  const pctEl = $('tiDonutPct'); if (pctEl) pctEl.textContent = releasedPct.toFixed(0) + '%';
+
+  // Stat strip
+  const releasedAbbr = totalUnlocked >= 1e6 ? (totalUnlocked/1e6).toFixed(2)+'M'
+                    : totalUnlocked >= 1e3 ? (totalUnlocked/1e3).toFixed(2)+'K'
+                    : totalUnlocked.toFixed(0);
+  const lockedAbbr   = totalLocked >= 1e6 ? (totalLocked/1e6).toFixed(2)+'M'
+                    : totalLocked >= 1e3 ? (totalLocked/1e3).toFixed(2)+'K'
+                    : totalLocked.toFixed(0);
+  $('statReleased').textContent = releasedAbbr;
+  $('statLocked').textContent = lockedAbbr;
+
+  // Next unlock = 距离最近一笔未全部释放的锁的剩余天数 (>0 的最小值)
+  const pendingRows = rows.filter(r => r.state.daysRemaining > 0);
+  if (pendingRows.length > 0) {
+    const next = pendingRows.reduce((m, r) => r.state.daysRemaining < m.state.daysRemaining ? r : m);
+    const d = next.state.daysRemaining;
+    const dStr = d >= 1 ? d.toFixed(0) + 'd' : (d * 24).toFixed(1) + 'h';
+    $('statNextDays').textContent = dStr;
+    $('statNextDays').className = 'text-3xl font-medium tabular-nums mt-2 ' + (d < 14 ? 'text-amber-600' : 'text-zinc-900');
+    $('statNextMeta').textContent = `${shortAddr(next.owner)} → ${fmtNum(next.state.stillLocked, tokenDecimals)}`;
+  } else {
+    $('statNextDays').textContent = '—';
+    $('statNextDays').className = 'text-3xl font-medium tabular-nums mt-2 text-emerald-600';
+    $('statNextMeta').textContent = 'all released';
+  }
+
+  // 过滤
+  const filter = ($('filterAddr').value || '').trim().toLowerCase();
+  let display = rows;
+  if (filter) display = display.filter(r => r.owner.toLowerCase().includes(filter));
+
+  // 排序
+  const sort = $('sortBy').value;
+  display.sort((a, b) => {
+    switch (sort) {
+      case 'amount_desc':   return b.amountNum - a.amountNum;
+      case 'amount_asc':    return a.amountNum - b.amountNum;
+      case 'days_desc':     return b.state.daysRemaining - a.state.daysRemaining;
+      case 'days_asc':      return a.state.daysRemaining - b.state.daysRemaining;
+      case 'usd_desc':      return b.amountUsd - a.amountUsd;
+      case 'lockdate_desc': return Number(b.lockDate - a.lockDate);
+      case 'lockdate_asc':  return Number(a.lockDate - b.lockDate);
+      default:              return 0;
+    }
+  });
+
+  $('locksCount').textContent = `共 ${display.length} 笔锁仓` + (filter ? `(从 ${rows.length} 笔筛选)` : '');
+
+  if (display.length === 0) {
+    body.innerHTML = `<div class="px-10 py-20 text-center text-zinc-400 text-sm">No locks match your filter.</div>`;
+    return;
+  }
+
+  body.innerHTML = display.map((r, idx) => {
+    // 释放规则一行 meta
+    const cycleDays = Number(r.cycle) / 86400;
+    const tgePct = Number(r.tgeBps) / 100;
+    const cyclePct = Number(r.cycleBps) / 100;
+    const cycleLabel = cycleDays < 1 ? (cycleDays*24).toFixed(0)+' 小时' : cycleDays.toFixed(1)+' 天';
+    const releaseRule = cyclePct > 0
+      ? `TGE 释放 ${tgePct}% · 之后每 ${cycleLabel} 释放 ${cyclePct}%`
+      : `TGE 一次性释放 ${tgePct}%`;
+
+    // 进度条颜色 (语义化)
+    const pct = r.state.progressPct;
+    const isReleased = r.state.daysRemaining <= 0 || pct >= 99.99;
+    const barColor = isReleased ? 'bg-emerald-500'
+                   : pct < 25 ? 'bg-emerald-500'
+                   : (r.state.daysRemaining > 0 && r.state.daysRemaining < 14) ? 'bg-amber-500'
+                   : 'bg-zinc-900';
+
+    // 剩余天数 + 颜色
+    const d = r.state.daysRemaining;
+    let daysHtml, badgeHtml;
+    if (isReleased) {
+      daysHtml = `<div class="text-2xl font-medium tabular-nums text-emerald-600">已全部释放</div>`;
+      badgeHtml = `<span class="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-zinc-500 ring-1 ring-zinc-200 rounded-full px-2.5 py-1 mt-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>已解锁</span>`;
+    } else {
+      const dColor = d < 14 ? 'text-amber-600' : d < 30 ? 'text-zinc-700' : 'text-zinc-900';
+      const dStr = d >= 1 ? d.toFixed(0) + ' 天' : (d * 24).toFixed(1) + ' 小时';
+      daysHtml = `<div class="text-2xl font-medium tabular-nums ${dColor}">${dStr}</div>
+                  <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium mt-1">剩余至全释放</div>`;
+      const label = pct > 0 ? '解锁中' : '锁定中';
+      const dotColor = pct > 0 ? 'bg-amber-500' : 'bg-zinc-400';
+      badgeHtml = `<span class="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-zinc-500 ring-1 ring-zinc-200 rounded-full px-2.5 py-1 mt-2">
+        <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>${label}</span>`;
+    }
+
+    // 进度 pill 位置 (避免溢出)
+    const pillLeft = Math.max(0, Math.min(pct, 94));
+
+    const desc = r.description ? r.description.replace(/</g, '&lt;') : '';
+    const descMeta = desc
+      ? `<span class="text-zinc-300 mx-2">·</span><span class="text-zinc-600">备注: ${desc}</span>`
+      : '';
+
+    return `
+      <article class="grid grid-cols-12 gap-5 md:gap-8 px-6 md:px-12 py-7 border-b border-zinc-100 hover:bg-zinc-50/60 transition-colors">
+        <span class="col-span-1 text-sm mono text-zinc-400 pt-1.5">#${String(idx + 1).padStart(2, '0')}</span>
+
+        <!-- 持有人 + TGE -->
+        <div class="col-span-11 md:col-span-3">
+          <a href="https://bscscan.com/address/${r.owner}" target="_blank"
+             class="text-base mono text-zinc-900 hover:underline underline-offset-4 decoration-zinc-300 font-medium">${shortAddr(r.owner)}</a>
+          <div class="text-sm text-zinc-500 mt-1.5">首释 ${fmtDate(r.tgeDate)}</div>
+        </div>
+
+        <!-- 数量 + USD -->
+        <div class="col-span-6 md:col-span-2">
+          <div class="text-xl font-medium tabular-nums mono">${fmtNum(r.amount, tokenDecimals)}</div>
+          <div class="text-sm text-zinc-500 tabular-nums mt-1">${fmtUsd(r.amountUsd)}</div>
+        </div>
+
+        <!-- 进度条 + 当前剩余 -->
+        <div class="col-span-6 md:col-span-3 relative pt-2">
+          <div class="h-2 w-full rounded-full bg-zinc-100 overflow-hidden">
+            <div class="h-2 rounded-full ${barColor} transition-all" style="width:${pct.toFixed(2)}%"></div>
+          </div>
+          <span class="absolute -top-2 text-[11px] px-2 py-0.5 rounded-full bg-zinc-900 text-white tabular-nums font-medium shadow-sm"
+                style="left:${pillLeft}%">${pct.toFixed(1)}%</span>
+          <div class="text-sm mt-4 text-zinc-500">
+            仍锁 <span class="mono tabular-nums text-zinc-700 font-medium">${fmtNum(r.state.stillLocked, tokenDecimals)}</span>
+            <span class="text-zinc-400 mono">· ${fmtUsd(r.lockedUsd)}</span>
+          </div>
+        </div>
+
+        <!-- 剩余天数 + 状态徽章 -->
+        <div class="col-span-12 md:col-span-3 md:text-right flex md:flex-col md:items-end gap-2 md:gap-0">
+          <div>${daysHtml}</div>
+          <div>${badgeHtml}</div>
+        </div>
+
+        <!-- 释放规则 + 备注 -->
+        <p class="col-start-1 md:col-start-2 col-span-12 md:col-span-11 text-sm text-zinc-500 leading-relaxed line-clamp-2 mt-1">
+          <span class="text-zinc-700">${releaseRule}</span>
+          ${descMeta}
+        </p>
+      </article>
+    `;
+  }).join('');
+}
+
+// ============================================================================
+// 事件
+// ============================================================================
+$('queryBtn').addEventListener('click', query);
+['sortBy','filterAddr'].forEach(id => {
+  $(id).addEventListener('input', () => { if (allLocks.length) renderLocks(); });
+});
+
+// Debug drawer
+const drawer = $('debugDrawer');
+$('debugToggle').addEventListener('click', () => drawer.classList.toggle('translate-x-full'));
+$('debugClose').addEventListener('click', () => drawer.classList.add('translate-x-full'));
+
+// Token address Enter → query
+$('tokenInput').addEventListener('keydown', e => { if (e.key === 'Enter') query(); });
+
+// 自动查询
+query();
+</script>
+</body>
+</html>
