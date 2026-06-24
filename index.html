@@ -49,75 +49,96 @@
 </details>
 
 <!-- 02 · Hero:代币信息 + 总锁仓价值 + 释放进度环 -->
-<section id="tokenInfo" class="hidden py-14 md:py-20 px-6 md:px-12 grid grid-cols-12 gap-8 md:gap-12 border-b border-zinc-200">
+<section id="tokenInfo" class="hidden py-8 md:py-10 px-6 md:px-10 grid grid-cols-12 gap-6 md:gap-10 border-b border-zinc-200">
   <!-- 左:代币名 + 价格 -->
   <div class="col-span-12 md:col-span-4 flex flex-col justify-center">
-    <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium mb-4">代币</div>
-    <div id="tiName" class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">--</div>
-    <div class="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <span id="tiSymbol" class="text-base mono font-medium text-zinc-700"></span>
+    <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium mb-2">代币</div>
+    <div id="tiName" class="text-xl md:text-2xl font-semibold tracking-tight leading-tight">--</div>
+    <div class="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <span id="tiSymbol" class="text-sm mono font-medium text-zinc-700"></span>
       <span class="text-zinc-300">·</span>
-      <span id="tiPrice" class="text-base mono font-semibold text-zinc-900">--</span>
-      <span id="tiPriceSrc" class="text-sm text-zinc-400"></span>
+      <span id="tiPrice" class="text-sm mono font-semibold text-zinc-900">--</span>
+      <span id="tiPriceSrc" class="text-xs text-zinc-400"></span>
     </div>
   </div>
 
   <!-- 中:总锁仓价值 -->
   <div class="col-span-12 md:col-span-5 flex flex-col justify-center">
-    <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium mb-4">锁仓总价值</div>
-    <div id="tiTotalUsd" class="text-6xl md:text-7xl font-semibold tabular-nums tracking-tight leading-none">--</div>
-    <div class="mt-4 text-sm text-zinc-500 tabular-nums">
+    <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium mb-2">锁仓总价值</div>
+    <div id="tiTotalUsd" class="text-3xl md:text-4xl font-semibold tabular-nums tracking-tight leading-none">--</div>
+    <div class="mt-2 text-sm text-zinc-500 tabular-nums">
       <span id="tiTotalAmount" class="mono text-zinc-700 font-medium">--</span>
-      <span class="text-zinc-400 ml-2">枚代币 已锁定</span>
+      <span class="text-zinc-400 ml-1.5">枚 已锁定</span>
     </div>
   </div>
 
   <!-- 右:释放进度环 -->
   <div class="col-span-12 md:col-span-3 flex md:justify-end items-center">
-    <div class="relative w-32 h-32 md:w-36 md:h-36">
+    <div class="relative w-20 h-20">
       <svg id="tiDonut" class="w-full h-full -rotate-90" viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="42" fill="none" stroke="#f4f4f5" stroke-width="10"/>
         <circle id="tiDonutArc" cx="50" cy="50" r="42" fill="none" stroke="#10b981" stroke-width="10"
           stroke-dasharray="0 263.9" stroke-linecap="round" style="transition: stroke-dasharray .6s ease"/>
       </svg>
       <div class="absolute inset-0 flex flex-col items-center justify-center">
-        <div id="tiDonutPct" class="text-2xl font-semibold tabular-nums">0%</div>
-        <div class="text-[11px] uppercase tracking-wider text-zinc-400 mt-0.5">已释放</div>
+        <div id="tiDonutPct" class="text-base font-semibold tabular-nums leading-none">0%</div>
+        <div class="text-[10px] uppercase tracking-wider text-zinc-400 mt-0.5">已释放</div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- 03 · 关键指标四格 -->
-<section id="statStrip" class="hidden grid grid-cols-2 md:grid-cols-4 divide-x divide-zinc-200 px-6 md:px-12 py-10 border-b border-zinc-200">
-  <div class="pr-6 md:pr-10">
+<section id="statStrip" class="hidden grid grid-cols-2 md:grid-cols-4 divide-x divide-zinc-200 px-6 md:px-10 py-5 border-b border-zinc-200">
+  <div class="pr-4 md:pr-6">
     <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium">锁仓笔数</div>
-    <div id="tiLockCount" class="text-4xl font-medium tabular-nums mt-3">--</div>
+    <div id="tiLockCount" class="text-xl font-semibold tabular-nums mt-1.5">--</div>
   </div>
-  <div class="px-6 md:px-10">
+  <div class="px-4 md:px-6">
     <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium">已释放</div>
-    <div id="statReleased" class="text-4xl font-medium tabular-nums mt-3 text-emerald-600">--</div>
+    <div id="statReleased" class="text-xl font-semibold tabular-nums mt-1.5 text-emerald-600">--</div>
   </div>
-  <div class="px-6 md:px-10">
+  <div class="px-4 md:px-6">
     <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium">仍锁定</div>
-    <div id="statLocked" class="text-4xl font-medium tabular-nums mt-3">--</div>
+    <div id="statLocked" class="text-xl font-semibold tabular-nums mt-1.5">--</div>
   </div>
-  <div class="px-6 md:px-10">
+  <div class="px-4 md:px-6">
     <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium">下次解锁</div>
-    <div id="statNextDays" class="text-4xl font-medium tabular-nums mt-3">--</div>
-    <div id="statNextMeta" class="text-sm text-zinc-500 mt-1.5 mono truncate">--</div>
+    <div id="statNextDays" class="text-xl font-semibold tabular-nums mt-1.5">--</div>
+    <div id="statNextMeta" class="text-xs text-zinc-500 mt-1 mono truncate">--</div>
   </div>
 </section>
 
 <!-- 04 · 工具栏 + 锁仓列表 -->
 <div id="locksWrap" class="hidden">
-  <div class="sticky top-16 z-10 bg-white/95 backdrop-blur px-6 md:px-12 py-4 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-100">
+  <div class="sticky top-16 z-10 bg-white/95 backdrop-blur px-6 md:px-10 py-3 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100">
     <span id="locksCount" class="text-sm text-zinc-500 font-medium">共 0 笔</span>
-    <div class="flex gap-6 md:gap-8 items-center flex-wrap">
+    <div class="flex gap-4 md:gap-6 items-center flex-wrap">
+      <!-- 视图切换 -->
+      <div class="inline-flex items-center rounded-full bg-zinc-100 p-0.5 text-xs font-medium" id="viewToggle">
+        <button data-view="card" class="view-btn px-3 py-1 rounded-full transition-colors">
+          <span class="inline-flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="14" width="18" height="7" rx="1"/></svg>
+            卡片
+          </span>
+        </button>
+        <button data-view="table" class="view-btn px-3 py-1 rounded-full transition-colors">
+          <span class="inline-flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            表格
+          </span>
+        </button>
+        <button data-view="compact" class="view-btn px-3 py-1 rounded-full transition-colors">
+          <span class="inline-flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="16" x2="21" y2="16"/><line x1="3" y1="20" x2="21" y2="20"/></svg>
+            紧凑
+          </span>
+        </button>
+      </div>
       <input id="filterAddr"
-        class="border-0 border-b border-zinc-300 focus:border-zinc-900 focus:ring-0 text-sm py-1 px-0 mono bg-transparent outline-none w-44 md:w-60 placeholder:text-zinc-300"
+        class="border-0 border-b border-zinc-300 focus:border-zinc-900 focus:ring-0 text-sm py-1 px-0 mono bg-transparent outline-none w-36 md:w-52 placeholder:text-zinc-300"
         placeholder="搜索地址  0x...">
-      <label class="text-sm text-zinc-500 flex items-center gap-3">
+      <label class="text-sm text-zinc-500 flex items-center gap-2">
         <span class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium">排序</span>
         <select id="sortBy" class="text-sm bg-transparent border-0 focus:ring-0 text-zinc-900 font-medium cursor-pointer outline-none">
           <option value="days_asc">即将解锁(由近到远)</option>
@@ -132,7 +153,7 @@
     </div>
   </div>
 
-  <!-- 05 · 锁仓列表 -->
+  <!-- 05 · 锁仓列表 (3 种视图共用一个 body) -->
   <div id="locksBody"></div>
 </div>
 
@@ -549,6 +570,7 @@ async function query() {
 
     const N = Number(meta.totalCount);
     dlog(`总锁仓单数: ${N}`);
+    autoPickView(N);  // 按数量自动选视图(用户没主动切过时)
 
     // === D · 批次/并发拉满 ===
     const BATCH = 1000;
@@ -698,97 +720,145 @@ function renderLocks() {
   $('locksCount').textContent = `共 ${display.length} 笔锁仓` + (filter ? `(从 ${rows.length} 笔筛选)` : '');
 
   if (display.length === 0) {
-    body.innerHTML = `<div class="px-10 py-20 text-center text-zinc-400 text-sm">No locks match your filter.</div>`;
+    body.innerHTML = `<div class="px-10 py-20 text-center text-zinc-400 text-sm">没有匹配的锁仓</div>`;
     return;
   }
 
-  body.innerHTML = display.map((r, idx) => {
-    // 释放规则一行 meta
-    const cycleDays = Number(r.cycle) / 86400;
-    const tgePct = Number(r.tgeBps) / 100;
-    const cyclePct = Number(r.cycleBps) / 100;
-    const cycleLabel = cycleDays < 1 ? (cycleDays*24).toFixed(0)+' 小时' : cycleDays.toFixed(1)+' 天';
-    const releaseRule = cyclePct > 0
-      ? `TGE 释放 ${tgePct}% · 之后每 ${cycleLabel} 释放 ${cyclePct}%`
-      : `TGE 一次性释放 ${tgePct}%`;
+  // 按当前视图渲染
+  if (currentView === 'card')        body.innerHTML = renderCardView(display);
+  else if (currentView === 'compact') body.innerHTML = renderCompactView(display);
+  else                                body.innerHTML = renderTableView(display);
+}
 
-    // 进度条颜色 (语义化)
-    const pct = r.state.progressPct;
-    const isReleased = r.state.daysRemaining <= 0 || pct >= 99.99;
-    const barColor = isReleased ? 'bg-emerald-500'
-                   : pct < 25 ? 'bg-emerald-500'
-                   : (r.state.daysRemaining > 0 && r.state.daysRemaining < 14) ? 'bg-amber-500'
-                   : 'bg-zinc-900';
+// 公共:每条 lock 算出展示数据
+function lockPresentation(r) {
+  const cycleDays = Number(r.cycle) / 86400;
+  const tgePct = Number(r.tgeBps) / 100;
+  const cyclePct = Number(r.cycleBps) / 100;
+  const cycleLabel = cycleDays < 1 ? (cycleDays*24).toFixed(0)+'h' : cycleDays.toFixed(1)+'d';
+  const releaseRule = cyclePct > 0
+    ? `TGE ${tgePct}% · 每 ${cycleLabel} 释 ${cyclePct}%`
+    : `TGE 一次性 ${tgePct}%`;
+  const pct = r.state.progressPct;
+  const d = r.state.daysRemaining;
+  const isReleased = d <= 0 || pct >= 99.99;
+  const barColor = isReleased ? 'bg-emerald-500'
+                 : (d > 0 && d < 14) ? 'bg-amber-500'
+                 : 'bg-zinc-900';
+  const dColor = isReleased ? 'text-emerald-600'
+               : d < 14 ? 'text-amber-600'
+               : d < 30 ? 'text-zinc-700' : 'text-zinc-900';
+  const dStr = isReleased ? '已释' : (d >= 1 ? d.toFixed(0) + 'd' : (d * 24).toFixed(1) + 'h');
+  const label = isReleased ? '已解锁' : (pct > 0 ? '解锁中' : '锁定中');
+  const dotColor = isReleased ? 'bg-emerald-500' : (pct > 0 ? 'bg-amber-500' : 'bg-zinc-400');
+  return { pct, d, isReleased, barColor, dColor, dStr, label, dotColor, releaseRule };
+}
 
-    // 剩余天数 + 颜色
-    const d = r.state.daysRemaining;
-    let daysHtml, badgeHtml;
-    if (isReleased) {
-      daysHtml = `<div class="text-2xl font-medium tabular-nums text-emerald-600">已全部释放</div>`;
-      badgeHtml = `<span class="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-zinc-500 ring-1 ring-zinc-200 rounded-full px-2.5 py-1 mt-2">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>已解锁</span>`;
-    } else {
-      const dColor = d < 14 ? 'text-amber-600' : d < 30 ? 'text-zinc-700' : 'text-zinc-900';
-      const dStr = d >= 1 ? d.toFixed(0) + ' 天' : (d * 24).toFixed(1) + ' 小时';
-      daysHtml = `<div class="text-2xl font-medium tabular-nums ${dColor}">${dStr}</div>
-                  <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-medium mt-1">剩余至全释放</div>`;
-      const label = pct > 0 ? '解锁中' : '锁定中';
-      const dotColor = pct > 0 ? 'bg-amber-500' : 'bg-zinc-400';
-      badgeHtml = `<span class="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-zinc-500 ring-1 ring-zinc-200 rounded-full px-2.5 py-1 mt-2">
-        <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>${label}</span>`;
-    }
-
-    // 进度 pill 位置 (避免溢出)
-    const pillLeft = Math.max(0, Math.min(pct, 94));
-
+// === 视图 1: 卡片(较舒展)===
+function renderCardView(display) {
+  return display.map((r, idx) => {
+    const p = lockPresentation(r);
+    const pillLeft = Math.max(0, Math.min(p.pct, 94));
     const desc = r.description ? r.description.replace(/</g, '&lt;') : '';
     const descMeta = desc
-      ? `<span class="text-zinc-300 mx-2">·</span><span class="text-zinc-600">备注: ${desc}</span>`
+      ? `<span class="text-zinc-300 mx-1.5">·</span><span class="text-zinc-600">${desc}</span>`
       : '';
-
     return `
-      <article class="grid grid-cols-12 gap-5 md:gap-8 px-6 md:px-12 py-7 border-b border-zinc-100 hover:bg-zinc-50/60 transition-colors">
-        <span class="col-span-1 text-sm mono text-zinc-400 pt-1.5">#${String(idx + 1).padStart(2, '0')}</span>
-
-        <!-- 持有人 + TGE -->
+      <article class="grid grid-cols-12 gap-4 md:gap-6 px-6 md:px-10 py-4 border-b border-zinc-100 hover:bg-zinc-50/60 transition-colors">
+        <span class="col-span-1 text-xs mono text-zinc-400 pt-1">#${String(idx + 1).padStart(2, '0')}</span>
         <div class="col-span-11 md:col-span-3">
           <a href="https://bscscan.com/address/${r.owner}" target="_blank"
-             class="text-base mono text-zinc-900 hover:underline underline-offset-4 decoration-zinc-300 font-medium">${shortAddr(r.owner)}</a>
-          <div class="text-sm text-zinc-500 mt-1.5">首释 ${fmtDate(r.tgeDate)}</div>
+             class="text-sm mono text-zinc-900 hover:underline underline-offset-4 decoration-zinc-300 font-medium">${shortAddr(r.owner)}</a>
+          <div class="text-xs text-zinc-500 mt-1">首释 ${fmtDate(r.tgeDate)}</div>
         </div>
-
-        <!-- 数量 + USD -->
         <div class="col-span-6 md:col-span-2">
-          <div class="text-xl font-medium tabular-nums mono">${fmtNum(r.amount, tokenDecimals)}</div>
-          <div class="text-sm text-zinc-500 tabular-nums mt-1">${fmtUsd(r.amountUsd)}</div>
+          <div class="text-base font-semibold tabular-nums mono">${fmtNum(r.amount, tokenDecimals)}</div>
+          <div class="text-xs text-zinc-500 tabular-nums mt-0.5">${fmtUsd(r.amountUsd)}</div>
         </div>
-
-        <!-- 进度条 + 当前剩余 -->
-        <div class="col-span-6 md:col-span-3 relative pt-2">
-          <div class="h-2 w-full rounded-full bg-zinc-100 overflow-hidden">
-            <div class="h-2 rounded-full ${barColor} transition-all" style="width:${pct.toFixed(2)}%"></div>
+        <div class="col-span-6 md:col-span-3 relative pt-1.5">
+          <div class="h-1.5 w-full rounded-full bg-zinc-100 overflow-hidden">
+            <div class="h-1.5 rounded-full ${p.barColor} transition-all" style="width:${p.pct.toFixed(2)}%"></div>
           </div>
-          <span class="absolute -top-2 text-[11px] px-2 py-0.5 rounded-full bg-zinc-900 text-white tabular-nums font-medium shadow-sm"
-                style="left:${pillLeft}%">${pct.toFixed(1)}%</span>
-          <div class="text-sm mt-4 text-zinc-500">
+          <span class="absolute -top-2 text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-900 text-white tabular-nums font-medium"
+                style="left:${pillLeft}%">${p.pct.toFixed(1)}%</span>
+          <div class="text-xs mt-2.5 text-zinc-500">
             仍锁 <span class="mono tabular-nums text-zinc-700 font-medium">${fmtNum(r.state.stillLocked, tokenDecimals)}</span>
             <span class="text-zinc-400 mono">· ${fmtUsd(r.lockedUsd)}</span>
           </div>
         </div>
-
-        <!-- 剩余天数 + 状态徽章 -->
-        <div class="col-span-12 md:col-span-3 md:text-right flex md:flex-col md:items-end gap-2 md:gap-0">
-          <div>${daysHtml}</div>
-          <div>${badgeHtml}</div>
+        <div class="col-span-12 md:col-span-3 md:text-right flex md:flex-col md:items-end gap-2 md:gap-0.5">
+          <div class="text-base font-semibold tabular-nums ${p.dColor}">${p.dStr}</div>
+          <span class="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-zinc-500 ring-1 ring-zinc-200 rounded-full px-2 py-0.5">
+            <span class="w-1 h-1 rounded-full ${p.dotColor}"></span>${p.label}
+          </span>
         </div>
-
-        <!-- 释放规则 + 备注 -->
-        <p class="col-start-1 md:col-start-2 col-span-12 md:col-span-11 text-sm text-zinc-500 leading-relaxed line-clamp-2 mt-1">
-          <span class="text-zinc-700">${releaseRule}</span>
-          ${descMeta}
+        <p class="col-start-1 md:col-start-2 col-span-12 md:col-span-11 text-xs text-zinc-500 leading-relaxed line-clamp-1 -mt-0.5">
+          <span class="text-zinc-600">${p.releaseRule}</span>${descMeta}
         </p>
       </article>
     `;
+  }).join('');
+}
+
+// === 视图 2: 表格(标准列)===
+function renderTableView(display) {
+  const head = `
+    <table class="w-full text-sm">
+      <thead class="bg-zinc-50 text-[11px] uppercase tracking-[0.12em] text-zinc-500">
+        <tr>
+          <th class="px-3 py-2.5 text-left font-medium w-12">#</th>
+          <th class="px-3 py-2.5 text-left font-medium">持有人</th>
+          <th class="px-3 py-2.5 text-right font-medium">数量</th>
+          <th class="px-3 py-2.5 text-right font-medium">USD</th>
+          <th class="px-3 py-2.5 text-right font-medium">已释</th>
+          <th class="px-3 py-2.5 text-right font-medium">仍锁</th>
+          <th class="px-3 py-2.5 text-right font-medium">剩余</th>
+          <th class="px-3 py-2.5 text-left font-medium">首释</th>
+          <th class="px-3 py-2.5 text-left font-medium">规则</th>
+        </tr>
+      </thead>
+      <tbody>`;
+  const rows = display.map((r, idx) => {
+    const p = lockPresentation(r);
+    const desc = r.description ? r.description.replace(/</g, '&lt;') : '';
+    return `
+      <tr class="border-b border-zinc-100 hover:bg-zinc-50/60 transition-colors">
+        <td class="px-3 py-2.5 text-xs mono text-zinc-400">${idx + 1}</td>
+        <td class="px-3 py-2.5">
+          <a href="https://bscscan.com/address/${r.owner}" target="_blank"
+             class="mono text-zinc-900 hover:underline underline-offset-2 decoration-zinc-300 font-medium">${shortAddr(r.owner)}</a>
+        </td>
+        <td class="px-3 py-2.5 text-right mono tabular-nums">${fmtNum(r.amount, tokenDecimals)}</td>
+        <td class="px-3 py-2.5 text-right mono tabular-nums text-zinc-600">${fmtUsd(r.amountUsd)}</td>
+        <td class="px-3 py-2.5 text-right mono tabular-nums text-emerald-600">${p.pct.toFixed(1)}%</td>
+        <td class="px-3 py-2.5 text-right mono tabular-nums">${fmtNum(r.state.stillLocked, tokenDecimals)}</td>
+        <td class="px-3 py-2.5 text-right">
+          <span class="mono tabular-nums font-medium ${p.dColor}">${p.dStr}</span>
+        </td>
+        <td class="px-3 py-2.5 text-xs text-zinc-500">${fmtDate(r.tgeDate)}</td>
+        <td class="px-3 py-2.5 text-xs text-zinc-500 max-w-[220px] truncate" title="${p.releaseRule}${desc ? ' · ' + desc : ''}">${p.releaseRule}${desc ? ' · ' + desc : ''}</td>
+      </tr>`;
+  }).join('');
+  return head + rows + `</tbody></table>`;
+}
+
+// === 视图 3: 紧凑(超密,扫一眼)===
+function renderCompactView(display) {
+  return display.map((r, idx) => {
+    const p = lockPresentation(r);
+    return `
+      <div class="flex items-center gap-4 px-6 md:px-10 py-1.5 border-b border-zinc-100 hover:bg-zinc-50/60 text-xs font-mono">
+        <span class="text-zinc-400 w-8 text-right">${idx + 1}</span>
+        <a href="https://bscscan.com/address/${r.owner}" target="_blank"
+           class="text-zinc-900 hover:underline w-24 truncate">${shortAddr(r.owner)}</a>
+        <span class="tabular-nums w-20 text-right">${fmtNum(r.amount, tokenDecimals)}</span>
+        <span class="tabular-nums w-16 text-right text-zinc-500">${fmtUsd(r.amountUsd)}</span>
+        <div class="flex-1 max-w-xs h-1 rounded-full bg-zinc-100 overflow-hidden">
+          <div class="h-1 ${p.barColor}" style="width:${p.pct.toFixed(2)}%"></div>
+        </div>
+        <span class="tabular-nums w-12 text-right text-emerald-600">${p.pct.toFixed(0)}%</span>
+        <span class="tabular-nums w-16 text-right ${p.dColor} font-semibold">${p.dStr}</span>
+      </div>`;
   }).join('');
 }
 
@@ -799,6 +869,36 @@ $('queryBtn').addEventListener('click', query);
 ['sortBy','filterAddr'].forEach(id => {
   $(id).addEventListener('input', () => { if (allLocks.length) renderLocks(); });
 });
+
+// === 视图切换 ===
+let currentView = localStorage.getItem('vesting:view') || 'card';
+let viewAutoSet = false;  // 用户主动切过就不再自动改
+function applyViewBtnStyles() {
+  document.querySelectorAll('#viewToggle .view-btn').forEach(b => {
+    if (b.dataset.view === currentView) {
+      b.className = 'view-btn px-3 py-1 rounded-full transition-colors bg-white text-zinc-900 shadow-sm';
+    } else {
+      b.className = 'view-btn px-3 py-1 rounded-full transition-colors text-zinc-500 hover:text-zinc-900';
+    }
+  });
+}
+document.querySelectorAll('#viewToggle .view-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    currentView = b.dataset.view;
+    viewAutoSet = true;
+    localStorage.setItem('vesting:view', currentView);
+    applyViewBtnStyles();
+    if (allLocks.length) renderLocks();
+  });
+});
+applyViewBtnStyles();
+
+// 自动按数量选默认视图(只在用户从未手动切过时生效)
+function autoPickView(n) {
+  if (viewAutoSet || localStorage.getItem('vesting:view')) return;
+  currentView = n < 20 ? 'card' : n < 100 ? 'table' : 'compact';
+  applyViewBtnStyles();
+}
 
 // Debug drawer
 const drawer = $('debugDrawer');
